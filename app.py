@@ -4,6 +4,10 @@ from Tkinter import *
 from threading import Thread
 import tkMessageBox
 
+from scrolable_frame import ScrollableFrame
+from step import *
+from utils import *
+
 class MessageBox():
     def __init__(self):
         self.root = Tk()
@@ -39,38 +43,6 @@ class MessageBox():
     甩干
         8 甩干
 '''
-
-class step(object):
-    def __init__(self):
-        self.time = 0.0
-        self.widget = None
-        self.process_time = None
-
-    def reset(self) :
-        self.time = 0.0
-        self.update_view()
-
-    def count_down (self):
-        self.time = self.time + 1
-        self.time = min(self.time, self.process_time)
-
-    def is_finish(self):
-        return self.time == self.process_time
-
-    @property
-    def status(self):
-        return ( '%s - %s  %.2f' %  ( self.time, self.process_time,  self.time *100.0 / self.process_time ) )  + '%'
-
-    @status.setter
-    def status(self, value):
-        pass
-    
-    def set_view(self, widget):
-        self.widget = widget
-    
-    def update_view(self):
-        if self.widget :
-            self.widget.config(text=self.status)
 
 class water_in(step):
     def __init__(self, process_time=60*2):
@@ -163,6 +135,9 @@ class processing(step):
             else :
                 tkMessageBox.showinfo( 'all done','全部完成，晾衣服吧'  )
 
+    def skip(self):
+        self.current_step.skip()
+
     @property
     def status(self):
         curret_step = self.current_step  
@@ -172,24 +147,6 @@ class processing(step):
     def status(self, value):
         pass
 
-class ScrollableFrame(Frame):
-    def __init__(self, root):
-
-        Frame.__init__(self, root)
-        self.canvas = Canvas(root, borderwidth=0)
-        self.frame = Frame(self.canvas)
-        self.vsb = Scrollbar(root, orient="vertical", command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.vsb.set)
-
-        self.vsb.pack(side="right", fill="y")
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.canvas.create_window((4,4), window=self.frame, anchor="nw", tags="self.frame")
-
-        self.frame.bind("<Configure>", self.onFrameConfigure)
-
-    def onFrameConfigure(self, event):
-        '''Reset the scroll region to encompass the inner frame'''
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
 
 class App:
@@ -242,6 +199,10 @@ class App:
         button_reset.pack(side=BOTTOM)
         button_reset.grid(row=1,column=2)
 
+        button_skip = self.button_skip = Button( frame_buttons, text="skip",  command=self.skip )
+        button_skip.pack(side=BOTTOM)
+        button_skip.grid(row=1,column=3)
+
         frame_buttons.pack(side=BOTTOM, pady=10)
 
         scrollable_frame.pack(side="top", fill="both", expand=True)
@@ -263,7 +224,11 @@ class App:
         self.running= False
         self.process.reset()
         self.update_status()
-    
+
+    def skip(self):
+        self.process.skip()
+        self.update_status()
+
     def update_status(self):
         self.button_start.config(state= NORMAL if not self.running else DISABLED)
         self.button_pause.config(state= NORMAL if self.running else DISABLED)
@@ -281,21 +246,14 @@ class App:
         if self.running and not self.process.is_finish():
             self.master.after(int(1e3), self.do_process)
 
-def center(toplevel):
-    toplevel.update_idletasks()
-    w = toplevel.winfo_screenwidth()
-    h = toplevel.winfo_screenheight()
-    size = tuple(int(_) for _ in toplevel.geometry().split('+')[0].split('x'))
-    x = w/2 - size[0]/2
-    y = h/2 - size[1]/2
-    toplevel.geometry("%dx%d+%d+%d" % (size + (x, y)))
+
 
 
 if __name__ == '__main__':
     root = Tk()
    
     root.minsize(width=400, height=300)
-    root.title('测试')
+    root.title('洗衣机计时器')
 
     center(root)
 
