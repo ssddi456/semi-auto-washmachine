@@ -1,0 +1,1 @@
+createobject("wscript.shell").run "cmd /c python .\potato_timer.py",0
